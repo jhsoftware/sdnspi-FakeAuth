@@ -1,18 +1,13 @@
 ﻿Imports JHSoftware.SimpleDNS.Plugin
 
 Public Class FakeAuthPlugIn
-  Implements JHSoftware.SimpleDNS.Plugin.IGetAnswerPlugIn
-
-  Public Event AsyncError(ByVal ex As System.Exception) Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.AsyncError
-  Public Event LogLine(ByVal text As String) Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.LogLine
-  Public Event SaveConfig(ByVal config As String) Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.SaveConfig
-
-  Private SOAType = DNSRRType.Parse("SOA")
-  Private NSType = DNSRRType.Parse("NS")
-  Private ANYType = DNSRRType.Parse("*")
+  Implements ILookupAnswer
+  Implements IOptionsUI
 
   Private cfg As MyConfig
   Private cfgSoaData As String
+
+  Public Property Host As IHost Implements IPlugInBase.Host
 
 #Region "not implemented"
 
@@ -27,8 +22,9 @@ Public Class FakeAuthPlugIn
     Return ""
   End Function
 
-  Public Sub StartService() Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.StartService
-  End Sub
+  Public Function StartService() As Threading.Tasks.Task Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.StartService
+    Return Threading.Tasks.Task.CompletedTask
+  End Function
 
   Public Sub StopService() Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.StopService
   End Sub
@@ -39,48 +35,38 @@ Public Class FakeAuthPlugIn
     Dim rv As IPlugInBase.PlugInTypeInfo
     rv.Name = MyConfig.PIName
     rv.Description = "Returns SOA- and NS-records"
-    rv.InfoURL = "http://www.simpledns.com/kb.aspx?kbid=1285"
-    rv.ConfigFile = False
-    rv.MultiThreaded = False
+    rv.InfoURL = "https://simpledns.plus/kb/174/fake-zone-authority-plug-in"
     Return rv
   End Function
 
-  Public Function GetDNSAskAbout() As JHSoftware.SimpleDNS.Plugin.DNSAskAbout Implements JHSoftware.SimpleDNS.Plugin.IGetAnswerPlugIn.GetDNSAskAbout
-    If cfg.NoData Then
-      Return Nothing
-    Else
-      Return New DNSAskAbout With {.RRTypes = New DNSRRType() {SOAType, NSType}}
-    End If
-  End Function
 
-  Public Function Lookup(ByVal request As JHSoftware.SimpleDNS.Plugin.IDNSRequest) As JHSoftware.SimpleDNS.Plugin.DNSAnswer Implements JHSoftware.SimpleDNS.Plugin.IGetAnswerPlugIn.Lookup
+  Public Async Function Lookup(ByVal request As JHSoftware.SimpleDNS.Plugin.IDNSRequest) As Threading.Tasks.Task(Of DNSAnswer) Implements JHSoftware.SimpleDNS.Plugin.ILookupAnswer.LookupAnswer
     Dim rv As New DNSAnswer
     rv.AA = TriState.True
     Select Case request.QType
-      Case SOAType
-        rv.Records.Add(New DNSRecord With {.Name = request.QName, _
-                                           .RRType = SOAType, _
-                                           .TTL = cfg.TTL, _
+      Case JHSoftware.SimpleDNS.DNSRecType.SOA
+        rv.AddRecord(New DNSRecord With {.Name = request.QName,
+                                           .RRType = JHSoftware.SimpleDNS.DNSRecType.SOA,
+                                           .TTL = cfg.TTL,
                                            .Data = cfgSoaData})
-      Case NSType
+      Case JHSoftware.SimpleDNS.DNSRecType.NS
         For Each s In cfg.DnsServers
-          rv.Records.Add(New DNSRecord With {.Name = request.QName, _
-                                             .RRType = NSType, _
-                                             .TTL = cfg.TTL, _
+          rv.AddRecord(New DNSRecord With {.Name = request.QName,
+                                             .RRType = JHSoftware.SimpleDNS.DNSRecType.NS,
+                                             .TTL = cfg.TTL,
                                              .Data = s & "."})
         Next
-      Case ANYType
+      Case JHSoftware.SimpleDNS.DNSRecType.ANY
       Case Else
         If cfg.NoData Then
           Dim x = request.QName.ToString
           For i = 0 To cfg.DnsServers.Length - 1
             If cfg.DnsServers(i) = x Then Return Nothing
           Next
-          rv.Records.Add(New DNSRecord With {.Name = request.QName, _
-                                             .RRType = SOAType, _
-                                             .TTL = cfg.TTL, _
-                                             .Data = cfgSoaData, _
-                                             .AnswerSection = DNSAnswerSection.Authority})
+          rv.AddRecord(New DNSRecord With {.Name = request.QName,
+                                             .RRType = JHSoftware.SimpleDNS.DNSRecType.SOA,
+                                             .TTL = cfg.TTL,
+                                             .Data = cfgSoaData}, 2)
         Else
           Return Nothing
         End If
@@ -88,11 +74,11 @@ Public Class FakeAuthPlugIn
     Return rv
   End Function
 
-  Public Function GetOptionsUI(ByVal instanceID As System.Guid, ByVal dataPath As String) As JHSoftware.SimpleDNS.Plugin.OptionsUI Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.GetOptionsUI
+  Public Function GetOptionsUI(ByVal instanceID As System.Guid, ByVal dataPath As String) As JHSoftware.SimpleDNS.Plugin.OptionsUI Implements JHSoftware.SimpleDNS.Plugin.IOptionsUI.GetOptionsUI
     Return New OptionsUI
   End Function
 
-  Public Sub LoadConfig(ByVal config As String, ByVal instanceID As System.Guid, ByVal dataPath As String, ByRef maxThreads As Integer) Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.LoadConfig
+  Public Sub LoadConfig(ByVal config As String, ByVal instanceID As System.Guid, ByVal dataPath As String) Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.LoadConfig
     cfg = MyConfig.Load(config)
     cfgSoaData = cfg.MakeSoaData
   End Sub

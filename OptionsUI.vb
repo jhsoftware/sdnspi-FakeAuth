@@ -77,9 +77,9 @@
     Dim i As Integer
     Dim sl = ServerList
     If sl.Length = 0 Then MessageBox.Show("At least one DNS server name is required", MyConfig.PIName, MessageBoxButtons.OK, MessageBoxIcon.Error) : Return False
-    Dim dn As JHSoftware.SimpleDNS.Plugin.DomainName
+    Dim dn As JHSoftware.SimpleDNS.DomName
     For i = 0 To sl.Length - 1
-      If Not JHSoftware.SimpleDNS.Plugin.DomainName.TryParse(sl(i), dn) Then _
+      If Not JHSoftware.SimpleDNS.DomName.TryParse(sl(i), dn) Then _
         MessageBox.Show("Invalid DNS server name '" & sl(i) & "'", MyConfig.PIName, MessageBoxButtons.OK, MessageBoxIcon.Error) : Return False
       For j = i + 1 To sl.Length - 1
         If sl(i) = sl(j) Then MessageBox.Show("DNS server name '" & sl(i) & "' is listed several times", MyConfig.PIName, MessageBoxButtons.OK, MessageBoxIcon.Error) : Return False
@@ -88,9 +88,9 @@
 
     Dim x = CleanEmail(txtEmail.Text)
     i = x.IndexOf("@"c)
-    If i < 1 OrElse i = x.Length - 1 OrElse _
-       x.IndexOf("@"c, i + 1) > 0 OrElse _
-       Not JHSoftware.SimpleDNS.Plugin.DomainName.TryParse(x.Substring(i + 1), dn) _
+    If i < 1 OrElse i = x.Length - 1 OrElse
+       x.IndexOf("@"c, i + 1) > 0 OrElse
+       Not JHSoftware.SimpleDNS.DomName.TryParse(x.Substring(i + 1), dn) _
        Then MessageBox.Show("Invalid e-mail address", MyConfig.PIName, MessageBoxButtons.OK, MessageBoxIcon.Error) : Return False
 
     Return True
