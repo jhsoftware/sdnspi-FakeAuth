@@ -31,27 +31,27 @@ Public Class FakeAuthPlugIn
 
 #End Region
 
-  Public Function GetPlugInTypeInfo() As JHSoftware.SimpleDNS.Plugin.IPlugInBase.PlugInTypeInfo Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.GetPlugInTypeInfo
+  Public Function GetPlugInTypeInfo() As JHSoftware.SimpleDNS.Plugin.IPlugInBase.PlugInTypeInfo Implements JHSoftware.SimpleDNS.Plugin.IPlugInBase.GetTypeInfo
     Dim rv As IPlugInBase.PlugInTypeInfo
     rv.Name = MyConfig.PIName
     rv.Description = "Returns SOA- and NS-records"
-    rv.InfoURL = "https://simpledns.plus/kb/174/fake-zone-authority-plug-in"
+    rv.InfoURL = "https://simpledns.plus/plugin-fakezoneauth"
     Return rv
   End Function
 
 
-  Public Async Function Lookup(ByVal request As JHSoftware.SimpleDNS.Plugin.IDNSRequest) As Threading.Tasks.Task(Of DNSAnswer) Implements JHSoftware.SimpleDNS.Plugin.ILookupAnswer.LookupAnswer
+  Public Async Function Lookup(ByVal request As IRequestContext) As Threading.Tasks.Task(Of DNSAnswer) Implements JHSoftware.SimpleDNS.Plugin.ILookupAnswer.LookupAnswer
     Dim rv As New DNSAnswer
     rv.AA = TriState.True
     Select Case request.QType
       Case JHSoftware.SimpleDNS.DNSRecType.SOA
-        rv.AddRecord(New DNSRecord With {.Name = request.QName,
+        rv.Answer.Add(New DNSRecord With {.Name = request.QName,
                                            .RRType = JHSoftware.SimpleDNS.DNSRecType.SOA,
                                            .TTL = cfg.TTL,
                                            .Data = cfgSoaData})
       Case JHSoftware.SimpleDNS.DNSRecType.NS
         For Each s In cfg.DnsServers
-          rv.AddRecord(New DNSRecord With {.Name = request.QName,
+          rv.Answer.Add(New DNSRecord With {.Name = request.QName,
                                              .RRType = JHSoftware.SimpleDNS.DNSRecType.NS,
                                              .TTL = cfg.TTL,
                                              .Data = s & "."})
@@ -63,10 +63,10 @@ Public Class FakeAuthPlugIn
           For i = 0 To cfg.DnsServers.Length - 1
             If cfg.DnsServers(i) = x Then Return Nothing
           Next
-          rv.AddRecord(New DNSRecord With {.Name = request.QName,
+          rv.Authority.Add(New DNSRecord With {.Name = request.QName,
                                              .RRType = JHSoftware.SimpleDNS.DNSRecType.SOA,
                                              .TTL = cfg.TTL,
-                                             .Data = cfgSoaData}, 2)
+                                             .Data = cfgSoaData})
         Else
           Return Nothing
         End If
