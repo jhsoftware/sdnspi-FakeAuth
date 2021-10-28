@@ -28,7 +28,7 @@ Public Class FakeAuthPlugIn
     Dim rv As TypeInfo
     rv.Name = MyConfig.PIName
     rv.Description = "Returns SOA- and NS-records"
-    rv.InfoURL = "https://simpledns.plus/plugin-fakezoneauth"
+    rv.InfoURL = "https://simpledns.plus/plugin-fakeauth"
     Return rv
   End Function
 
